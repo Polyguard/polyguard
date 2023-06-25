@@ -60,6 +60,7 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
     const safeTransaction = await safeSDK.createTransaction({ safeTransactionData: txData })
     const safeTxHash = await safeSDK.getTransactionHash(safeTransaction)
     const senderSignature = await safeSDK.signTransactionHash(safeTxHash)
+    console.log(safeAddress, txData, safeTxHash, senderSignature)
     await safeService.proposeTransaction({
       safeAddress: safeAddress,
       safeTransactionData: safeTransaction.data,
@@ -76,6 +77,7 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
     setTxTriggered(true)
     const pendingTransactions = (await safeService.getPendingTransactions(safeAddress))?.results
     const transaction = pendingTransactions[0]
+    console.log(transaction)
     setTx(transaction)
     const executeTxResponse = await safeSDK.executeTransaction(transaction)
     setTxHash(executeTxResponse.hash)
@@ -86,7 +88,9 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
 
   const onClickExecute = async () => {
     setTxTriggered(true)
-    const executeTxResponse = await safeSDK.executeTransaction(tx)
+    const pendingTransactions = (await safeService.getPendingTransactions(safeAddress))?.results
+    const transaction = pendingTransactions[0]
+    const executeTxResponse = await safeSDK.executeTransaction(transaction)
     setTxHash(executeTxResponse.hash)
     console.log(executeTxResponse)
     //const receipt = await executeTxResponse.transactionResponse?.wait()
@@ -222,9 +226,13 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
               <Typography variant='h5' component='div'>
                 {fraudDetectionResult?.reason}
               </Typography>
-              {txTriggered && <CircularProgress />}
+              {txTriggered && (
+                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <CircularProgress />
+                </Box>
+              )}
               {!txTriggered && (
-                <Button variant='contained' fullWidth onClick={() => onClickOverride()}>
+                <Button variant='contained' fullWidth onClick={onClickOverride}>
                   Override
                 </Button>
               )}
@@ -296,9 +304,9 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
               </Typography>
             </Box>
             {txTriggered && (
-                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <CircularProgress />
-                </Box>
+              <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress />
+              </Box>
             )}
             {!txTriggered && (
               <Button variant='contained' fullWidth onClick={onClickExecute}>
@@ -371,9 +379,9 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
               </Typography>
             </Box>
             {txTriggered && (
-                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <CircularProgress />
-                </Box>
+              <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress />
+              </Box>
             )}
             {!txTriggered && (
               <Button variant='contained' fullWidth onClick={onClickExecuteOverride}>
@@ -431,7 +439,7 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
             <Button
               variant='contained'
               fullWidth
-              target="_blank" 
+              target="_blank"
               href={`https://goerli.etherscan.io/tx/${txHash}`}
             >
               View on Block Explorer
@@ -492,7 +500,7 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
   }
   return (
     <div>
-      <Button variant='contained' onClick={onClick} sx={{width: 190}}>
+      <Button variant='contained' onClick={onClick} sx={{ width: 190 }}>
         {buttonText}
       </Button>
       <Dialog
@@ -523,7 +531,7 @@ const TxButton = ({ buttonText, safeSDK, safeService, safeAddress, txData, ip })
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{pb: 5}}>
+        <DialogContent sx={{ pb: 5 }}>
           {step && (
             <>
               {DIALOG[step].title}
@@ -546,7 +554,7 @@ function App() {
   const [safeService, setSafeService] = useState<SafeApiKit | null>(null)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       const options: Web3AuthOptions = {
         clientId: process.env.NEXT_PUBLIC_WEB3_AUTH_CLIENT_ID,
         web3AuthNetwork: 'testnet',
@@ -662,7 +670,7 @@ function App() {
     },
     {
       title: 'IP address from a different country',
-      subtitle: 'IP address from a different country',
+      subtitle: '',
       buttonText: 'Swap Tokens',
       txData: TX_DATA.find(tx => tx.label === 'IP_ADDRESS_NOT_THE_SAME_COUNTRY')?.txData,
       ip: TX_DATA.find(tx => tx.label === 'IP_ADDRESS_NOT_THE_SAME_COUNTRY')?.ip
@@ -675,60 +683,62 @@ function App() {
       {safeAuthSignInResponse?.eoa && (
         <Grid container sx={{ pl: 10, pr: 10 }}>
           <Grid item p={2}>
-              <Card sx={{ p: 2, height: 320, width: 400 }}>
-                <CardContent sx={{ height: '100%', width: '100%' }}>
-                  <Box
-                    sx={{
-                      height: '100%',
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <Typography variant='h4' component='div'>
-                        Transfer Funds
-                      </Typography>
-                      <Typography variant='h8'>Send tokens to another address</Typography>
-                    </Box>
-                    <Box>
-                      <TxButton
-                        txData={cards[0].txData}
-                        ip={cards[0].ip}
-                        buttonText={'whitelisted address'}
-                        safeSDK={safeSDK}
-                        safeService={safeService}
-                        safeAddress={safeAuthSignInResponse.safes[0]}
-                      />
-                    </Box>
-                    <Box>
-                      <TxButton
-                        txData={cards[0].txData}
-                        ip={cards[0].ip}
-                        buttonText={'backlisted address'}
-                        safeSDK={safeSDK}
-                        safeService={safeService}
-                        safeAddress={safeAuthSignInResponse.safes[0]}
-                      />
-                    </Box>
-                    <Box>
-                      <TxButton
-                        txData={cards[0].txData}
-                        ip={cards[0].ip}
-                        buttonText={'new address'}
-                        safeSDK={safeSDK}
-                        safeService={safeService}
-                        safeAddress={safeAuthSignInResponse.safes[0]}
-                      />
-                    </Box>
+            <Card sx={{ p: 2, height: 360, width: 400 }}>
+              <CardContent sx={{ height: '100%', width: '100%' }}>
+                <Box
+                  sx={{
+                    height: '100%',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Typography variant='h5' component='div'>
+                      Use Case
+                    </Typography>
+                    <Typography variant='h4' component='div'>
+                      Transfer Funds
+                    </Typography>
                   </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                  <Box>
+                    <TxButton
+                      txData={cards[0].txData}
+                      ip={cards[0].ip}
+                      buttonText={'whitelisted address'}
+                      safeSDK={safeSDK}
+                      safeService={safeService}
+                      safeAddress={safeAuthSignInResponse.safes[0]}
+                    />
+                  </Box>
+                  <Box>
+                    <TxButton
+                      txData={cards[1].txData}
+                      ip={cards[1].ip}
+                      buttonText={'backlisted address'}
+                      safeSDK={safeSDK}
+                      safeService={safeService}
+                      safeAddress={safeAuthSignInResponse.safes[0]}
+                    />
+                  </Box>
+                  <Box>
+                    <TxButton
+                      txData={cards[2].txData}
+                      ip={cards[2].ip}
+                      buttonText={'new address'}
+                      safeSDK={safeSDK}
+                      safeService={safeService}
+                      safeAddress={safeAuthSignInResponse.safes[0]}
+                    />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
           {cards.slice(3).map((card, index) => (
             <Grid item p={2} key={index}>
-              <Card sx={{ p: 2, height: 320, width: 400 }}>
+              <Card sx={{ p: 2, height: 360, width: 400 }}>
                 <CardContent sx={{ height: '100%', width: '100%' }}>
                   <Box
                     sx={{
@@ -740,6 +750,9 @@ function App() {
                     }}
                   >
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Typography variant='h5' component='div'>
+                      Use Case
+                    </Typography>
                       <Typography variant='h4' component='div'>
                         {card.title}
                       </Typography>
